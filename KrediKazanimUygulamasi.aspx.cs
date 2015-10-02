@@ -14,6 +14,7 @@ using System.Data.OleDb;
 using System.IO;
 using System.Globalization;
 using System.Text;
+using System.Collections.Generic;
 
 public partial class KrediKazanimUygulamasi : System.Web.UI.Page
 {
@@ -37,47 +38,48 @@ public partial class KrediKazanimUygulamasi : System.Web.UI.Page
             string excelConnectionString = string.Format("Provider=Microsoft.ACE.OLEDB.12.0;Data Source={0};Extended Properties=Excel 8.0", path);
 
             // string path = FileUpload1.
-            Label2.Text = ConvertDataTable2HTMLString(CsvFileToDatatable(path, IsFirstRowHeader));
+           // Label2.Text = ConvertDataTable2HTMLString(CsvFileToDatatable(path, IsFirstRowHeader));
+             Label2.Text = ConvertDataTable2HTMLString( ReadCSV( path,  IsFirstRowHeader, ';'));
         }
 
     }
-    public DataTable CsvFileToDatatable(string path, bool IsFirstRowHeader)
-    {
+    //public DataTable CsvFileToDatatable(string path, bool IsFirstRowHeader)
+    //{
 
-        string header = "No";
-        string sql = string.Empty;
-        DataTable dataTable = null;
-        string pathOnly = string.Empty;
-        string fileName = string.Empty;
-        try
-        {
-            pathOnly = Path.GetDirectoryName(path);
-            fileName = Path.GetFileName(path);
-            sql = @"SELECT * FROM [" + fileName + "]";
-            if (IsFirstRowHeader)
-            {
-                header = "Yes";
-            }
-            using (OleDbConnection connection = new OleDbConnection(@"Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + pathOnly +
-            ";Extended Properties=\"Text;HDR=" + header + "\""))
-            {
-                using (OleDbCommand command = new OleDbCommand(sql, connection))
-                {
-                    using (OleDbDataAdapter adapter = new OleDbDataAdapter(command))
-                    {
-                        dataTable = new DataTable();
-                        dataTable.Locale = CultureInfo.CurrentCulture;
-                        adapter.Fill(dataTable);
-                    }
-                }
-            }
-        }
-        finally
-        {
-        }
+    //    string header = "No";
+    //    string sql = string.Empty;
+    //    DataTable dataTable = null;
+    //    string pathOnly = string.Empty;
+    //    string fileName = string.Empty;
+    //    try
+    //    {
+    //        pathOnly = Path.GetDirectoryName(path);
+    //        fileName = Path.GetFileName(path);
+    //        sql = @"SELECT * FROM [" + fileName + "]";
+    //        if (IsFirstRowHeader)
+    //        {
+    //            header = "Yes";
+    //        }
+    //        using (OleDbConnection connection = new OleDbConnection(@"Provider=Microsoft.Jet.OLEDB.4.0;Data Source=" + pathOnly +
+    //        ";Extended Properties=\"Text;HDR=" + header + "\""))
+    //        {
+    //            using (OleDbCommand command = new OleDbCommand(sql, connection))
+    //            {
+    //                using (OleDbDataAdapter adapter = new OleDbDataAdapter(command))
+    //                {
+    //                    dataTable = new DataTable();
+    //                    dataTable.Locale = CultureInfo.CurrentCulture;
+    //                    adapter.Fill(dataTable);
+    //                }
+    //            }
+    //        }
+    //    }
+    //    finally
+    //    {
+    //    }
 
-        return dataTable;
-    }
+    //    return dataTable;
+    //}
     public string ConvertDataTable2HTMLString(DataTable dt)
     {
         // string strM = "EXEC KKBSITE_SP_FINANSAL " + ViewState["base"].ToString();
@@ -116,5 +118,107 @@ public partial class KrediKazanimUygulamasi : System.Web.UI.Page
 
 
         return RVl;
+    }
+
+
+    private DataTable dataTable = null;
+    private bool IsHeader = true;
+    private string headerLine = string.Empty;
+    private List<string> AllLines = new List<string>();
+    private StringBuilder sb = new StringBuilder();
+    private char seprateChar = ';';
+
+
+    public DataTable ReadCSV(string path, bool IsReadHeader, char serparationChar)
+    {
+        seprateChar = serparationChar;
+        IsHeader = IsReadHeader;
+        using (StreamReader sr = new StreamReader(path, Encoding.Default))
+        {
+            while (!sr.EndOfStream)
+            {
+                AllLines.Add(sr.ReadLine());
+            }
+            createTemplate(AllLines);
+        }
+
+        return dataTable;
+    }
+    public void WriteCSV(string path, DataTable dtable, char serparationChar)
+    {
+        AllLines = new List<string>();
+        seprateChar = serparationChar;
+        List<string> StableHeadrs = new List<string>();
+        int colCount = 0;
+        using (StreamWriter sw = new StreamWriter(path))
+        {
+            foreach (DataColumn col in dtable.Columns)
+            {
+                sb.Append(col.ColumnName);
+                if (dataTable.Columns.Count - 1 > colCount)
+                    sb.Append(seprateChar);
+                colCount++;
+            }
+            AllLines.Add(sb.ToString());
+
+            for (int i = 0; i < dtable.Rows.Count; i++)
+            {
+               // sb.Clear();
+              // sb.
+                for (int j = 0; j < dtable.Columns.Count; j++)
+                {
+                    sb.Append(Convert.ToString(dtable.Rows[i][j]));
+                    if (dataTable.Columns.Count - 1 > j)
+                        sb.Append(seprateChar);
+                }
+                AllLines.Add(sb.ToString());
+            }
+
+            foreach (string dataline in AllLines)
+            {
+                sw.WriteLine(dataline);
+            }
+        }
+
+
+    }
+
+    private DataTable createTemplate(List<string> lines)
+    {
+
+        List<string> headers = new List<string>();
+        dataTable = new DataTable();
+        if (lines.Count > 0)
+        {
+            string[] argHeaders = null;
+            for (int i = 0; i < lines.Count; i++)
+            {
+                if (i > 0)
+                {
+                    DataRow newRow = dataTable.NewRow();
+                    // others add to rows
+                    string[] argLines = lines[i].Split(seprateChar);
+                    for (int b = 0; b < argLines.Length; b++)
+                    {
+                        newRow[b] = argLines[b];
+                    }
+                    dataTable.Rows.Add(newRow);
+
+                }
+                else
+                {
+                    // header add to columns
+                    argHeaders = lines[0].Split(seprateChar);
+                    foreach (string c in argHeaders)
+                    {
+                        DataColumn column = new DataColumn(c, typeof(string));
+                        dataTable.Columns.Add(column);
+                    }
+                }
+
+            }
+
+        }
+        return dataTable;
     }
 }
