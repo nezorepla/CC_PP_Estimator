@@ -14,7 +14,8 @@
         <asp:CheckBox ID="CheckBox1" runat="server" />
     </div>
     <asp:Button ID="Import" runat="server" Text="Button"  OnClick="Import_Click"/>
-  
-    </form>
+     <hr />
+        <asp:Label ID="Label2" runat="server" Text="Label"></asp:Label>
+    </div></form>
 </body>
 </html>
