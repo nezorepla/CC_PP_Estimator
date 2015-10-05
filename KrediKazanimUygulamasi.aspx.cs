@@ -40,12 +40,35 @@ public partial class KrediKazanimUygulamasi : System.Web.UI.Page
     B_TUTAR_2	float	,
     B_TUTAR_3	float	
     ) ON [PRIMARY]
-
 create proc KKG_SP_SEARCH (@BASE INT,@USER VARCHAR(10)) as
 select *,'<a href="javascript:alert('+convert(varchar(30),TAKIP_ID)+');">ISLEM YAP</a>' from KKG_T_TEMP
 where MUSTERI_NO= @BASE
-
  
+ CREATE TABLE [dbo].KKG_DEF_DDL(
+IntCode int identity(1,1)	,
+DDLType varchar(50),
+ DDLValue varchar(50))
+   
+     * 
+     * 
+     * insert into KKG_DEF_DDL values('ddlTelefonDurumu','Ulaşıldı')
+insert into KKG_DEF_DDL values('ddlTelefonDurumu','Ulaşılamadı')
+insert into KKG_DEF_DDL values('ddlIletisimSonucu','Peşin Ödeme Sözü Alındı')
+insert into KKG_DEF_DDL values('ddlIletisimSonucu','Taksitli Ödeme Sözü Alındı')
+insert into KKG_DEF_DDL values('ddlIletisimSonucu','Ödeme Sözü Alınamadı')
+insert into KKG_DEF_DDL values('ddlIletisimSonucu','Borctan Sorumlu Olmadığına Dair İtiraz')
+insert into KKG_DEF_DDL values('ddlIletisimSonucu','Dosya Avukatına Ödeme Sözü Vermiş')
+insert into KKG_DEF_DDL values('ddlIletisimSonucu','Vefat Etmiş')
+insert into KKG_DEF_DDL values('ddlAdresZiyareti','Evet')
+insert into KKG_DEF_DDL values('ddlAdresZiyareti','Hayır')
+insert into KKG_DEF_DDL values('ddlAdresZiyareti','Geçerli Adres Bulunamadı')
+insert into KKG_DEF_DDL values('ddlZiyaretSonucu','Ziyaret Gerçekleşti')
+insert into KKG_DEF_DDL values('ddlZiyaretSonucu','Adreste Bulunamadı')
+insert into KKG_DEF_DDL values('ddlZiyaretSonucu','Adreste Başkası İkamet Ediyor')
+insert into KKG_DEF_DDL values('ddlSulhSozlesmesi','Taksitli Sulh Söz. İmzalandı')
+insert into KKG_DEF_DDL values('ddlSulhSozlesmesi','Peşin Sulh Söz. İmzalandı')
+insert into KKG_DEF_DDL values('ddlSulhSozlesmesi','Hayır')
+
  
     */
 
@@ -55,19 +78,19 @@ where MUSTERI_NO= @BASE
     private List<string> AllLines = new List<string>();
     private StringBuilder sb = new StringBuilder();
     private char seprateChar = ';';
+    string sqlConnectionStringyeni = @"Data Source=KRDPRDGEN01yeni;Initial Catalog=CCOps; uid=CollUser; Password = Coll123456;Connection Timeout=120;";
+    string sqlConnectionString = @"Data Source=KRDPRDGEN01;Initial Catalog=CCOps; uid=CollUser; Password = Coll123456;Connection Timeout=120;";
 
-    public static string connectionString = @"Data Source=.;Initial Catalog=Collection;User Id=sa;Password=Peno0000;  Connection Timeout=1200";
+    //public static string connectionString = @"Data Source=.;Initial Catalog=Collection;User Id=sa;Password=Peno0000;  Connection Timeout=1200";
     public static DataTable dtExcelRecords;// = new DataTable();
     public static OleDbConnection con;// = new OleDbConnection(connectionString);
     public static OleDbCommand cmd;// = new OleDbCommand();
     public static OleDbDataAdapter dAdapter;//
 
-    public string USER = "qq";//HttpContext.Current.User.Identity.Name.ToUpper().Replace("İ", "I").Substring(7, 6).ToString();
+    public string USER = HttpContext.Current.User.Identity.Name.ToUpper().Replace("İ", "I").Substring(7, 6).ToString();
 
     private static void ExecuteSQLStr(string queryString, string connectionString)
     {
-        //string sqlConnectionStringyeni = @"Data Source=KRDPRDGEN01yeni;Initial Catalog=CCOps; uid=CollUser; Password = Coll123456;Connection Timeout=120;";
-        //string sqlConnectionString = @"Data Source=KRDPRDGEN01;Initial Catalog=CCOps; uid=CollUser; Password = Coll123456;Connection Timeout=120;";
 
         using (SqlConnection connection = new SqlConnection(
                    connectionString))
@@ -81,31 +104,153 @@ where MUSTERI_NO= @BASE
     }
     protected void btnGet_Click(object sender, EventArgs e)
     {
-        DataTable dt = PCL.MsSQL_DBOperations.GetData("EXEC [KKG_SP_SEARCH] '" + txtBase.Text.ToString() + "', '" + USER + "'", "coll");
+        DataTable dt = PCL.MsSQL_DBOperations.GetData("EXEC [KKG_SP_SEARCH] '" + txtBase.Text.ToString() + "', '" + USER + "'", "SqlConny");
         lblCont.Text = ConvertDataTable2HTMLString(dt);
     }
     protected void Page_Load(object sender, EventArgs e)
     {
         if (Page.IsPostBack)
         {
-            if (Request["__EVENTTARGET"] == "yap" )
+
+            ImportArea.Visible = false;
+
+            if (Request["__EVENTTARGET"] == "IslemYap")
             {
                 //do something
-                lblCont.Text = Request["__EVENTARGUMENT"].ToString();
+                IslemYap(Request["__EVENTARGUMENT"].ToString());
             }
         }
+        else { FillDDLs();
+            TanimliMusteriler(); }
+    }
+
+    public void TanimliMusteriler() {
+
+        DataTable dt = PCL.MsSQL_DBOperations.GetData("EXEC [KKG_SP_TANIMLI]   '" + USER + "'", "SqlConny");
+        lblCont.Text =  ConvertDataTable2HTMLString(HTMLTransposedTable(dt));
+//;
+    }
+
+    public static DataTable HTMLTransposedTable(DataTable inputTable)
+    {
+        DataTable outputTable = new DataTable();
+        // Add columns by looping rows
+        // Header row's first column is same as in inputTable
+        outputTable.Columns.Add(inputTable.Columns[0].ColumnName.ToString());
+        // Header row's second column onwards, 'inputTable's first column taken
+        foreach (DataRow inRow in inputTable.Rows)
+        {
+            string newColName = inRow[0].ToString();
+            outputTable.Columns.Add(newColName);
+        }
+        // Add rows by looping columns       
+        for (int rCount = 1; rCount <= inputTable.Columns.Count - 1; rCount++)
+        {
+            DataRow newRow = outputTable.NewRow();
+            // First column is inputTable's Header row's second column
+            newRow[0] = inputTable.Columns[rCount].ColumnName.ToString();
+            for (int cCount = 0; cCount <= inputTable.Rows.Count - 1; cCount++)
+            {
+                string colValue = inputTable.Rows[cCount][rCount].ToString();
+                newRow[cCount + 1] = colValue;
+            }
+            outputTable.Rows.Add(newRow);
+        }
+        return outputTable;
+
+    }
+
+    public void FillDDLs()
+    {
+        DataTable dt = new DataTable();
+        ListItem li = new ListItem("Seçiniz", "0");
+        ddlAdresZiyareti.Items.Clear();
+        ddlAdresZiyareti.Items.Add(li);
+
+
+        ddlIletisimSonucu.Items.Clear();
+        ddlIletisimSonucu.Items.Add(li);
+
+
+        ddlSulhSozlesmesi.Items.Clear();
+        ddlSulhSozlesmesi.Items.Add(li);
+
+
+        ddlTelefonDurumu.Items.Clear();
+        ddlTelefonDurumu.Items.Add(li);
+
+
+
+        ddlZiyaretSonucu.Items.Clear();
+        ddlZiyaretSonucu.Items.Add(li);
+
+
+        dt = PCL.MsSQL_DBOperations.GetData("exec KKG_SP_DDL 'ddlAdresZiyareti'", "SqlConny");
+        foreach (DataRow dr in dt.Rows)
+        {
+            li = new ListItem(dr["DDLValue"].ToString(), dr["IntCode"].ToString());
+
+            ddlAdresZiyareti.Items.Add(li);
+        }
+
+
+
+        dt = PCL.MsSQL_DBOperations.GetData("exec KKG_SP_DDL 'ddlIletisimSonucu'", "SqlConny");
+        foreach (DataRow dr in dt.Rows)
+        {
+            li = new ListItem(dr["DDLValue"].ToString(), dr["IntCode"].ToString());
+
+            ddlIletisimSonucu.Items.Add(li);
+        }
+
+        dt = PCL.MsSQL_DBOperations.GetData("exec KKG_SP_DDL 'ddlSulhSozlesmesi'", "SqlConny");
+        foreach (DataRow dr in dt.Rows)
+        {
+            li = new ListItem(dr["DDLValue"].ToString(), dr["IntCode"].ToString());
+
+            ddlSulhSozlesmesi.Items.Add(li);
+        }
+
+        dt = PCL.MsSQL_DBOperations.GetData("exec KKG_SP_DDL 'ddlTelefonDurumu'", "SqlConny");
+        foreach (DataRow dr in dt.Rows)
+        {
+            li = new ListItem(dr["DDLValue"].ToString(), dr["IntCode"].ToString());
+
+            ddlTelefonDurumu.Items.Add(li);
+        }
+
+
+        dt = PCL.MsSQL_DBOperations.GetData("exec KKG_SP_DDL 'ddlZiyaretSonucu'", "SqlConny");
+        foreach (DataRow dr in dt.Rows)
+        {
+            li = new ListItem(dr["DDLValue"].ToString(), dr["IntCode"].ToString());
+
+            ddlZiyaretSonucu.Items.Add(li);
+        }
+
+
+
+    }
+ 
+    public void IslemYap(string TakipId)
+    {
+        //  lblCont.Text = "";
+
+        //alert(TakipId);
+
+
     }
     protected void Import_Click(object sender, EventArgs e)
     {
         Boolean IsFirstRowHeader = CheckBox1.Checked;
 
-        ExecuteSQLStr("truncate table KKG_T_TEMP", connectionString);
+        ExecuteSQLStr("truncate table KKG_T_TEMP", sqlConnectionStringyeni);
 
         if (FileUpload1.HasFile)
         {
 
-            //            string path = string.Concat(@"\\BTPRDOUT01\OUTPUT\OUTPUT\DMRapor\ALPER\PREGRINE_FOLDER\TempFiles\", FileUpload1.FileName);
-            string path = string.Concat(@"C:\TempFiles\", FileUpload1.FileName);
+            string path = string.Concat(@"\\BTPRDOUT01\OUTPUT\OUTPUT\DMRapor\ALPER\KKG_FILES\TempFiles\", FileUpload1.FileName);
+            //  string path = string.Concat(@"C:\TempFiles\", FileUpload1.FileName);
             //Save File as Temp then you can delete it if you want
 
             FileUpload1.SaveAs(path);
@@ -125,14 +270,14 @@ where MUSTERI_NO= @BASE
             {
                 //using (DbDataReader dr = cmd.ExecuteReader())
                 //{
-                    using (SqlBulkCopy bulkCopy =
-                               new SqlBulkCopy(connectionString))
-                    {
-                        bulkCopy.DestinationTableName = "dbo.KKG_T_TEMP";
-                        bulkCopy.WriteToServer(dtExcelRecords);
+                using (SqlBulkCopy bulkCopy =
+                           new SqlBulkCopy(sqlConnectionStringyeni))
+                {
+                    bulkCopy.DestinationTableName = "dbo.KKG_T_TEMP";
+                    bulkCopy.WriteToServer(dtExcelRecords);
 
 
-                    }
+                }
 
                 //}
                 txtUyari.Text = "Data Aktarildi.";
@@ -201,7 +346,7 @@ where MUSTERI_NO= @BASE
             // RV = dt.Rows[0]["URUN"].ToString().Trim();
 
             StringBuilder sb = new StringBuilder();
-            sb.Append("<table class=\"urnTable\" style=\"max-width: 1100px; max-height: 750px; overflow: auto;\"><thead><tr>");
+            sb.Append("<table class=\"urnTable\" style=\"max-width: 1100px; max-height: 750px; overflow: auto;  border-style: solid;   border-width: 1px;\"><thead><tr>");
             foreach (DataColumn c in dt.Columns)
             {
                 sb.AppendFormat("<th>{0}</th>", c.ColumnName);
@@ -212,7 +357,7 @@ where MUSTERI_NO= @BASE
                 sb.Append("<tr>"); foreach (object o in dr.ItemArray)
                 {
                     sb.AppendFormat("<td>{0}</td>",
-                    //System.Web.HttpUtility.HtmlEncode(o.ToString()));
+                        //System.Web.HttpUtility.HtmlEncode(o.ToString()));
                     o.ToString());
                 } sb.AppendLine("</tr>");
             } sb.AppendLine("</tbody></table>");
@@ -325,6 +470,13 @@ where MUSTERI_NO= @BASE
 
     protected void LinkButton1_Click(object sender, EventArgs e)
     {
-
+        if (USER == "A25318" || USER == "A11267" || USER == "A15894")
+        {
+            ImportArea.Visible = true;
+        }
+        else
+        {
+            Page.ClientScript.RegisterStartupScript(typeof(Page), "msgseysi", "alert('Bu Islem Icin Yetkiniz Bulunmamaktadir.')", true);
+        }
     }
 }
