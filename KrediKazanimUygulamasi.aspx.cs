@@ -68,9 +68,72 @@ insert into KKG_DEF_DDL values('ddlZiyaretSonucu','Adreste Başkası İkamet Edi
 insert into KKG_DEF_DDL values('ddlSulhSozlesmesi','Taksitli Sulh Söz. İmzalandı')
 insert into KKG_DEF_DDL values('ddlSulhSozlesmesi','Peşin Sulh Söz. İmzalandı')
 insert into KKG_DEF_DDL values('ddlSulhSozlesmesi','Hayır')
-
  
-    */
+   create table KKG_DAT_ACT(
+IntCode int identity(1,1),
+ Sicil varchar(30),
+ DT datetime,
+        lblPortfoySorumlusu varchar(100),
+        lblSubeAdi varchar(100) ,
+        lblSubeIli varchar(100),
+        lblMusteriNosu varchar(100),
+        lblTakipId varchar(100),
+        lblBilgi varchar(100) ,
+        ddlTelefonDurumu varchar(100),
+        txtTelefon varchar(100),
+        ddlIletisimSonucu varchar(100),
+        txtPesinOdemeTarihi varchar(100),
+        txtPesinatTutari varchar(100),    
+        txtPesinatTarihi varchar(100),
+        txtTaksitSayisi varchar(100) ,
+        txtPesinTutar varchar(100) ,
+        ddlSulhSozlesmesi varchar(100),
+        ddlAdresZiyareti varchar(100),
+        txtAdres varchar(100),
+        ddlZiyaretSonucu varchar(100)
+        )
+     * 
+     create proc KKG_sp_ACT(
+  @Sicil varchar(30),
+         @lblPortfoySorumlusu varchar(100),
+         @lblSubeAdi varchar(100) ,
+         @lblSubeIli varchar(100),
+         @lblMusteriNosu varchar(100),
+         @lblTakipId varchar(100),
+         @lblBilgi varchar(100) ,
+         @ddlTelefonDurumu varchar(100),
+         @txtTelefon varchar(100),
+         @ddlIletisimSonucu varchar(100),
+         @txtPesinOdemeTarihi varchar(100),
+         @txtPesinatTutari varchar(100),    
+         @txtPesinatTarihi varchar(100),
+         @txtTaksitSayisi varchar(100) ,
+         @txtPesinTutar varchar(100) ,
+         @ddlSulhSozlesmesi varchar(100),
+         @ddlAdresZiyareti varchar(100),
+         @txtAdres varchar(100),
+         @ddlZiyaretSonucu varchar(100)
+          ) as
+          
+                insert into  KKG_DAT_ACT values( @Sicil ,GETDATE(),
+         @lblPortfoySorumlusu ,
+         @lblSubeAdi  ,
+         @lblSubeIli ,
+         @lblMusteriNosu ,
+         @lblTakipId ,
+         @lblBilgi  ,
+         @ddlTelefonDurumu ,
+         @txtTelefon ,
+         @ddlIletisimSonucu ,
+         @txtPesinOdemeTarihi ,
+         @txtPesinatTutari ,    
+         @txtPesinatTarihi ,
+         @txtTaksitSayisi  ,
+         @txtPesinTutar  ,
+         @ddlSulhSozlesmesi ,
+         @ddlAdresZiyareti ,
+         @txtAdres ,
+         @ddlZiyaretSonucu )*/
 
     private DataTable dataTable = null;
     private bool IsHeader = true;
@@ -78,16 +141,22 @@ insert into KKG_DEF_DDL values('ddlSulhSozlesmesi','Hayır')
     private List<string> AllLines = new List<string>();
     private StringBuilder sb = new StringBuilder();
     private char seprateChar = ';';
-    string sqlConnectionStringyeni = @"Data Source=KRDPRDGEN01yeni;Initial Catalog=CCOps; uid=CollUser; Password = Coll123456;Connection Timeout=120;";
-    string sqlConnectionString = @"Data Source=KRDPRDGEN01;Initial Catalog=CCOps; uid=CollUser; Password = Coll123456;Connection Timeout=120;";
+    // string sqlConnectionStringyeni = @"Data Source=KRDPRDGEN01yeni;Initial Catalog=CCOps; uid=CollUser; Password = Coll123456;Connection Timeout=120;";
+    public static string sqlConnectionStringyeni = @"Data Source=.;Initial Catalog=Collection;User Id=sa;Password=Peno0000;  Connection Timeout=1200";
 
-    //public static string connectionString = @"Data Source=.;Initial Catalog=Collection;User Id=sa;Password=Peno0000;  Connection Timeout=1200";
+    public string USER = "A25318";// HttpContext.Current.User.Identity.Name.ToUpper().Replace("İ", "I").Substring(7, 6).ToString();
+
+    //string yol = @"\\BTPRDOUT01\OUTPUT\OUTPUT\DMRapor\ALPER\KKG_FILES\TempFiles\";
+    string yol = @"C:\TempFiles\";
+    //  string path = string.Concat(@"C:\TempFiles\", FileUpload1.FileName);
+
+
+    string sqlConnectionString = @"Data Source=KRDPRDGEN01;Initial Catalog=CCOps; uid=CollUser; Password = Coll123456;Connection Timeout=120;";
     public static DataTable dtExcelRecords;// = new DataTable();
     public static OleDbConnection con;// = new OleDbConnection(connectionString);
     public static OleDbCommand cmd;// = new OleDbCommand();
     public static OleDbDataAdapter dAdapter;//
 
-    public string USER = HttpContext.Current.User.Identity.Name.ToUpper().Replace("İ", "I").Substring(7, 6).ToString();
 
     private static void ExecuteSQLStr(string queryString, string connectionString)
     {
@@ -105,7 +174,7 @@ insert into KKG_DEF_DDL values('ddlSulhSozlesmesi','Hayır')
     protected void btnGet_Click(object sender, EventArgs e)
     {
         DataTable dt = PCL.MsSQL_DBOperations.GetData("EXEC [KKG_SP_SEARCH] '" + txtBase.Text.ToString() + "', '" + USER + "'", "SqlConny");
-        lblCont.Text = ConvertDataTable2HTMLString(dt);
+        lblCont.Text = ConvertDataTable2HTMLString(HTMLTransposedTable(dt));
     }
     protected void Page_Load(object sender, EventArgs e)
     {
@@ -120,15 +189,102 @@ insert into KKG_DEF_DDL values('ddlSulhSozlesmesi','Hayır')
                 IslemYap(Request["__EVENTARGUMENT"].ToString());
             }
         }
-        else { FillDDLs();
-            TanimliMusteriler(); }
+        else
+        {
+            FillDDLs(); ClearPage();
+            TanimliMusteriler();
+        }
+    }
+    protected void btnTamamla_Click(object sender, EventArgs e)
+    {
+
+        string text = "exec KKG_sp_ACT '" + USER + "'," +
+        "'" + lblPortfoySorumlusu.Text + "'," +
+        "'" + lblSubeAdi.Text + "'," +
+        "'" + lblSubeIli.Text + "'," +
+        "'" + lblMusteriNosu.Text + "'," +
+        "'" + lblTakipId.Text + "'," +
+        "'" + lblBilgi.Text + "'," +
+        "'" + ddlTelefonDurumu.SelectedValue.Trim() + "'," +
+        "'" + txtTelefon.Text + "'," +
+        "'" + ddlIletisimSonucu.SelectedValue.Trim() + "'," +
+        "'" + txtPesinOdemeTarihi.Text + "'," +
+        "'" + txtPesinatTutari.Text + "'," +
+        "'" + txtPesinatTarihi.Text + "'," +
+        "'" + txtTaksitSayisi.Text + "'," +
+        "'" + txtPesinTutar.Text + "'," +
+        "'" + ddlSulhSozlesmesi.SelectedValue.Trim() + "'," +
+        "'" + ddlAdresZiyareti.SelectedValue.Trim() + "'," +
+        "'" + txtAdres.Text + "'," +
+        "'" + ddlZiyaretSonucu.SelectedValue.Trim() + "'";
+
+
+        PCL.MsSQL_DBOperations.ExecuteSQLStr(text, "SqlConny");
+
+        Page.ClientScript.RegisterStartupScript(typeof(Page), "msgseysi2", "alert('Aksiyon Basariyla Eklenmistir.')", true);
+        ClearPage();
     }
 
-    public void TanimliMusteriler() {
+    void ClearPage()
+    {
+        lblPortfoySorumlusu.Text = null;
+        lblSubeAdi.Text = null;
+        lblSubeIli.Text = null;
+        lblMusteriNosu.Text = null;
+        lblTakipId.Text = null;
 
-        DataTable dt = PCL.MsSQL_DBOperations.GetData("EXEC [KKG_SP_TANIMLI]   '" + USER + "'", "SqlConny");
-        lblCont.Text =  ConvertDataTable2HTMLString(HTMLTransposedTable(dt));
-//;
+        lblBilgi.Text = null;
+        //ddlTelefonDurumu
+        txtAdres.Text = null;
+        txtBase.Text = null;
+        txtPesinatTarihi.Text = null;
+        txtPesinatTutari.Text = null;
+        txtPesinOdemeTarihi.Text = null;
+        txtPesinTutar.Text = null;
+        txtTaksitSayisi.Text = null;
+        txtTelefon.Text = null;
+
+
+    }
+    public void IslemYap(string TakipId)
+    {
+        FillDDLs();
+        ClearPage();
+        //  lblCont.Text = "";
+
+        //alert(TakipId);
+
+        //create proc [dbo].[KKG_SP_TAKIPID] (@ID INT)
+        //as
+        //select  * from dbo.KKG_T_TEMP
+        //where TAKIP_ID=@ID
+
+
+
+        DataTable dt = PCL.MsSQL_DBOperations.GetData("EXEC KKG_SP_TAKIPID    " + TakipId, "SqlConny");
+
+        //Portföy Sorumlusu	
+        //Şube Adı	
+        //Şube İli	
+        //Müşteri Nosu	
+        //Kredi No/Kart No - Adı Soyadı
+        //      URUN_ADSOYAD,, PORTFOY_SORUMLUSU_SICIL, SUBE_ADI, SUBE_ILI, MUSTERI_NO
+        lblPortfoySorumlusu.Text = dt.Rows[0]["PORTFOY_SORUMLUSU"].ToString();
+        lblSubeAdi.Text = dt.Rows[0]["SUBE_ADI"].ToString();
+        lblSubeIli.Text = dt.Rows[0]["SUBE_ILI"].ToString();
+        lblMusteriNosu.Text = dt.Rows[0]["MUSTERI_NO"].ToString();
+        lblBilgi.Text = dt.Rows[0]["URUN_ADSOYAD"].ToString();
+        lblTakipId.Text = dt.Rows[0]["TAKIP_ID"].ToString();
+    }
+    public void TanimliMusteriler()
+    {
+        try
+        {
+            DataTable dt = PCL.MsSQL_DBOperations.GetData("EXEC [KKG_SP_TANIMLI]   '" + USER + "'", "SqlConny");
+            lblCont.Text = ConvertDataTable2HTMLString(HTMLTransposedTable(dt));
+            //;
+        }
+        catch (Exception e) { }
     }
 
     public static DataTable HTMLTransposedTable(DataTable inputTable)
@@ -231,15 +387,8 @@ insert into KKG_DEF_DDL values('ddlSulhSozlesmesi','Hayır')
 
 
     }
- 
-    public void IslemYap(string TakipId)
-    {
-        //  lblCont.Text = "";
-
-        //alert(TakipId);
 
 
-    }
     protected void Import_Click(object sender, EventArgs e)
     {
         Boolean IsFirstRowHeader = CheckBox1.Checked;
@@ -249,8 +398,8 @@ insert into KKG_DEF_DDL values('ddlSulhSozlesmesi','Hayır')
         if (FileUpload1.HasFile)
         {
 
-            string path = string.Concat(@"\\BTPRDOUT01\OUTPUT\OUTPUT\DMRapor\ALPER\KKG_FILES\TempFiles\", FileUpload1.FileName);
-            //  string path = string.Concat(@"C:\TempFiles\", FileUpload1.FileName);
+            string path = string.Concat(yol, FileUpload1.FileName);
+
             //Save File as Temp then you can delete it if you want
 
             FileUpload1.SaveAs(path);
@@ -371,9 +520,6 @@ insert into KKG_DEF_DDL values('ddlSulhSozlesmesi','Hayır')
 
         return RVl;
     }
-
-
-
     public DataTable ReadCSV(string path, bool IsReadHeader, char serparationChar)
     {
         seprateChar = serparationChar;
@@ -479,4 +625,5 @@ insert into KKG_DEF_DDL values('ddlSulhSozlesmesi','Hayır')
             Page.ClientScript.RegisterStartupScript(typeof(Page), "msgseysi", "alert('Bu Islem Icin Yetkiniz Bulunmamaktadir.')", true);
         }
     }
+
 }
